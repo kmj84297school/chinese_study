@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>중국어 단어 퀴즈</title>
+<style>
+  :root{
+    --bg:#f4f6fb;
+    --card:#ffffff;
+    --primary:#3b6ef5;
+    --primary-dark:#2c54c4;
+    --text:#222;
+    --muted:#6b7280;
+    --border:#e3e7ef;
+    --correct:#1ca672;
+    --wrong:#e5484d;
+    --selected:#dbe6ff;
+    --shadow:0 6px 20px rgba(30,50,90,.08);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.5;
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{
+    max-width:560px;
+    margin:0 auto;
+    padding:16px 14px 48px;
+  }
+  header h1{
+    text-align:center;
+    font-size:1.5rem;
+    margin:8px 0 16px;
+  }
+  .mode-tag{
+    display:block;
+    text-align:center;
+    font-size:.85rem;
+    color:var(--muted);
+    margin-top:-10px;
+    margin-bottom:14px;
+  }
+  .mode-tag b{color:var(--primary);}
+
+  /* 통계 */
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:8px;
+    background:var(--card);
+    border-radius:14px;
+    padding:12px;
+    box-shadow:var(--shadow);
+    margin-bottom:16px;
+  }
+  .stat{
+    text-align:center;
+    padding:6px 2px;
+  }
+  .stat .num{
+    display:block;
+    font-size:1.15rem;
+    font-weight:700;
+    color:var(--primary);
+  }
+  .stat .lbl{
+    display:block;
+    font-size:.72rem;
+    color:var(--muted);
+    margin-top:2px;
+  }
+
+  /* 카드 */
+  .card{
+    background:var(--card);
+    border-radius:18px;
+    padding:22px 18px;
+    box-shadow:var(--shadow);
+    margin-bottom:16px;
+  }
+  .qnum{
+    font-size:.8rem;
+    color:var(--muted);
+    margin-bottom:10px;
+  }
+  .hanzi{
+    text-align:center;
+    font-size:3.6rem;
+    font-weight:700;
+    letter-spacing:2px;
+    margin:6px 0 22px;
+    word-break:keep-all;
+  }
+  .section-label{
+    font-size:.82rem;
+    color:var(--muted);
+    margin:0 0 8px;
+    font-weight:600;
+  }
+  .options{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-bottom:18px;
+  }
+  .opt{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    width:100%;
+    text-align:left;
+    background:#fff;
+    border:1.5px solid var(--border);
+    border-radius:12px;
+    padding:12px 14px;
+    font-size:1.05rem;
+    cursor:pointer;
+    transition:.15s;
+    color:var(--text);
+  }
+  .opt:hover:not(:disabled){border-color:var(--primary);}
+  .opt .badge{
+    flex:none;
+    width:24px;height:24px;
+    border-radius:50%;
+    background:#eef1f7;
+    color:var(--muted);
+    font-size:.85rem;
+    font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .opt.selected{
+    border-color:var(--primary);
+    background:var(--selected);
+  }
+  .opt.selected .badge{background:var(--primary);color:#fff;}
+  .opt.correct{border-color:var(--correct);background:#e7f7f0;}
+  .opt.correct .badge{background:var(--correct);color:#fff;}
+  .opt.wrong{border-color:var(--wrong);background:#fdeced;}
+  .opt.wrong .badge{background:var(--wrong);color:#fff;}
+  .opt:disabled{cursor:default;}
+
+  .meaning-input{
+    width:100%;
+    border:1.5px solid var(--border);
+    border-radius:12px;
+    padding:13px 14px;
+    font-size:1.05rem;
+    margin-bottom:16px;
+    outline:none;
+    transition:.15s;
+  }
+  .meaning-input:focus{border-color:var(--primary);}
+  .meaning-input:disabled{background:#f7f8fa;color:#555;}
+
+  .btn{
+    display:inline-block;
+    width:100%;
+    border:none;
+    border-radius:12px;
+    padding:14px;
+    font-size:1.05rem;
+    font-weight:700;
+    cursor:pointer;
+    transition:.15s;
+  }
+  .btn-primary{background:var(--primary);color:#fff;}
+  .btn-primary:hover{background:var(--primary-dark);}
+  .btn-primary:disabled{background:#b9c6e8;cursor:default;}
+  .btn-next{background:var(--correct);color:#fff;}
+  .btn-next:hover{filter:brightness(.95);}
+  .btn-ghost{
+    background:#eef1f7;color:#374151;
+  }
+  .btn-ghost:hover{background:#e2e7f1;}
+
+  /* 결과 */
+  .result{
+    border-radius:12px;
+    padding:14px;
+    margin-bottom:14px;
+    font-size:.95rem;
+  }
+  .result.ok{background:#e7f7f0;border:1.5px solid var(--correct);}
+  .result.no{background:#fdeced;border:1.5px solid var(--wrong);}
+  .result .head{font-size:1.15rem;font-weight:800;margin-bottom:6px;}
+  .result.ok .head{color:var(--correct);}
+  .result.no .head{color:var(--wrong);}
+  .result .row{margin:2px 0;}
+  .result .row b{color:#111;}
+
+  .done-msg{
+    text-align:center;
+    padding:34px 10px;
+    font-size:1.2rem;
+    font-weight:700;
+    color:var(--primary);
+  }
+  .done-msg small{
+    display:block;
+    font-weight:400;
+    font-size:.9rem;
+    color:var(--muted);
+    margin-top:8px;
+  }
+
+  /* 하단 컨트롤 */
+  .controls{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  .controls .btn{font-size:.92rem;padding:12px;}
+  .controls .full{grid-column:1 / -1;}
+
+  .hidden{display:none !important;}
+
+  /* 모달 */
+  .modal-bg{
+    position:fixed;inset:0;
+    background:rgba(20,30,55,.45);
+    display:flex;align-items:flex-end;justify-content:center;
+    z-index:50;
+    padding:0;
+  }
+  .modal{
+    background:#fff;
+    width:100%;
+    max-width:560px;
+    max-height:80vh;
+    border-radius:18px 18px 0 0;
+    padding:18px 16px 26px;
+    overflow-y:auto;
+  }
+  .modal h2{font-size:1.1rem;margin:0 0 4px;}
+  .modal .sub{color:var(--muted);font-size:.85rem;margin:0 0 14px;}
+  .list-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 12px;
+    margin-bottom:8px;
+  }
+  .list-item .hz{font-size:1.25rem;font-weight:700;min-width:54px;}
+  .list-item .info{flex:1;min-width:0;}
+  .list-item .py{font-size:.9rem;color:var(--primary);}
+  .list-item .mn{font-size:.85rem;color:var(--muted);}
+  .list-item .mini{
+    flex:none;border:none;background:#eef1f7;color:#374151;
+    border-radius:8px;padding:7px 11px;font-size:.82rem;font-weight:700;cursor:pointer;
+  }
+  .list-item .mini:hover{background:#e2e7f1;}
+  .empty{text-align:center;color:var(--muted);padding:26px 0;}
+  .modal .close{
+    width:100%;margin-top:8px;background:var(--primary);color:#fff;
+    border:none;border-radius:12px;padding:13px;font-size:1rem;font-weight:700;cursor:pointer;
+  }
+
+  @media (min-width:600px){
+    .modal-bg{align-items:center;}
+    .modal{border-radius:18px;}
+  }
+  @media (max-width:360px){
+    .hanzi{font-size:3rem;}
+    .stat .num{font-size:1rem;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>중국어 단어 퀴즈</h1>
+  </header>
+  <span class="mode-tag" id="modeTag"></span>
+
+  <!-- 통계 -->
+  <section class="stats" id="stats">
+    <div class="stat"><span class="num" id="stTotal">0</span><span class="lbl">전체 단어</span></div>
+    <div class="stat"><span class="num" id="stRemain">0</span><span class="lbl">남은 단어</span></div>
+    <div class="stat"><span class="num" id="stSolved">0</span><span class="lbl">맞힌 단어</span></div>
+    <div class="stat"><span class="num" id="stRetry">0</span><span class="lbl">재시험 단어</span></div>
+    <div class="stat"><span class="num" id="stExcl">0</span><span class="lbl">제외 단어</span></div>
+    <div class="stat"><span class="num" id="stRate">0%</span><span class="lbl">정답률</span></div>
+  </section>
+
+  <!-- 퀴즈 카드 -->
+  <section class="card" id="quizCard">
+    <div class="qnum" id="qnum"></div>
+    <div class="hanzi" id="hanzi">汉</div>
+
+    <p class="section-label">병음을 고르세요</p>
+    <div class="options" id="options"></div>
+
+    <p class="section-label">뜻을 입력하세요</p>
+    <input type="text" class="meaning-input" id="meaningInput" placeholder="뜻을 입력하고 Enter" autocomplete="off">
+
+    <div class="result hidden" id="result"></div>
+
+    <button class="btn btn-primary" id="submitBtn">제출</button>
+    <button class="btn btn-next hidden" id="nextBtn" style="margin-top:8px;">다음 문제 →</button>
+  </section>
+
+  <!-- 완료 메시지 카드 -->
+  <section class="card hidden" id="doneCard">
+    <div class="done-msg" id="doneMsg"></div>
+  </section>
+
+  <!-- 하단 컨트롤 -->
+  <section class="controls">
+    <button class="btn btn-primary" id="retryStartBtn">재시험 시작</button>
+    <button class="btn btn-ghost" id="normalBtn">일반 퀴즈로</button>
+    <button class="btn btn-ghost" id="retryListBtn">재시험 목록</button>
+    <button class="btn btn-ghost" id="exclListBtn">제외 목록</button>
+    <button class="btn btn-ghost full" id="resetBtn">기록 초기화</button>
+  </section>
+</div>
+
+<!-- 모달 -->
+<div class="modal-bg hidden" id="modalBg">
+  <div class="modal">
+    <h2 id="modalTitle"></h2>
+    <p class="sub" id="modalSub"></p>
+    <div id="modalBody"></div>
+    <button class="close" id="modalClose">닫기</button>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   단어 데이터 (hanzi, pinyin, meaning[])
+   ========================================================= */
+const WORDS = [
+  {hanzi:"你", pinyin:"nǐ", meaning:["너"]},
+  {hanzi:"您", pinyin:"nín", meaning:["당신","귀하"]},
+  {hanzi:"好", pinyin:"hǎo", meaning:["좋다","안녕하다"]},
+  {hanzi:"你好", pinyin:"nǐ hǎo", meaning:["안녕"]},
+  {hanzi:"您好", pinyin:"nín hǎo", meaning:["안녕하세요"]},
+  {hanzi:"你们好", pinyin:"nǐmen hǎo", meaning:["너희들 안녕"]},
+  {hanzi:"大家好", pinyin:"dàjiā hǎo", meaning:["여러분 안녕하세요"]},
+  {hanzi:"们", pinyin:"men", meaning:["~들","들"]},
+  {hanzi:"大家", pinyin:"dàjiā", meaning:["모두","여러분"]},
+  {hanzi:"早上", pinyin:"zǎoshang", meaning:["아침"]},
+  {hanzi:"早上好", pinyin:"zǎoshang hǎo", meaning:["좋은 아침"]},
+  {hanzi:"再见", pinyin:"zàijiàn", meaning:["안녕","잘 가"]},
+  {hanzi:"明天", pinyin:"míngtiān", meaning:["내일"]},
+  {hanzi:"明天见", pinyin:"míngtiān jiàn", meaning:["내일 만나"]},
+  {hanzi:"见", pinyin:"jiàn", meaning:["만나다","보다"]},
+  {hanzi:"谢谢", pinyin:"xièxie", meaning:["고맙습니다","고마워","감사합니다"]},
+  {hanzi:"谢谢你", pinyin:"xièxie nǐ", meaning:["고마워","고맙습니다"]},
+  {hanzi:"不", pinyin:"bù", meaning:["아니다","~하지 않다"]},
+  {hanzi:"不客气", pinyin:"bú kèqi", meaning:["천만에요"]},
+  {hanzi:"客气", pinyin:"kèqi", meaning:["예의를 차리다"]},
+  {hanzi:"不好意思", pinyin:"bù hǎoyìsi", meaning:["미안합니다","죄송합니다"]},
+  {hanzi:"对不起", pinyin:"duìbuqǐ", meaning:["미안합니다","죄송합니다"]},
+  {hanzi:"没关系", pinyin:"méi guānxi", meaning:["괜찮아요","괜찮다"]},
+  {hanzi:"没", pinyin:"méi", meaning:["없다","~하지 않았다"]},
+  {hanzi:"关系", pinyin:"guānxi", meaning:["관계"]},
+  {hanzi:"我", pinyin:"wǒ", meaning:["나"]},
+  {hanzi:"我们", pinyin:"wǒmen", meaning:["우리"]},
+  {hanzi:"你们", pinyin:"nǐmen", meaning:["너희들","너희"]},
+  {hanzi:"他", pinyin:"tā", meaning:["그"]},
+  {hanzi:"他们", pinyin:"tāmen", meaning:["그들"]},
+  {hanzi:"她", pinyin:"tā", meaning:["그녀"]},
+  {hanzi:"她们", pinyin:"tāmen", meaning:["그녀들"]},
+  {hanzi:"老师", pinyin:"lǎoshī", meaning:["선생님"]},
+  {hanzi:"妈妈", pinyin:"māma", meaning:["엄마"]},
+  {hanzi:"爸爸", pinyin:"bàba", meaning:["아빠"]},
+  {hanzi:"哥哥", pinyin:"gēge", meaning:["형","오빠"]},
+  {hanzi:"弟弟", pinyin:"dìdi", meaning:["남동생"]},
+  {hanzi:"姐姐", pinyin:"jiějie", meaning:["누나","언니"]},
+  {hanzi:"妹妹", pinyin:"mèimei", meaning:["여동생"]},
+  {hanzi:"朋友", pinyin:"péngyou", meaning:["친구"]},
+  {hanzi:"学生", pinyin:"xuésheng", meaning:["학생"]},
+  {hanzi:"人", pinyin:"rén", meaning:["사람"]},
+  {hanzi:"外孙", pinyin:"wàisūn", meaning:["외손자"]},
+  {hanzi:"外孙女", pinyin:"wàisūnnǚ", meaning:["외손녀"]},
+  {hanzi:"叫", pinyin:"jiào", meaning:["~라고 하다","부르다"]},
+  {hanzi:"什么", pinyin:"shénme", meaning:["무엇","무슨"]},
+  {hanzi:"名字", pinyin:"míngzi", meaning:["이름"]},
+  {hanzi:"呢", pinyin:"ne", meaning:["~는요?","~는요"]},
+  {hanzi:"欢迎", pinyin:"huānyíng", meaning:["환영하다","환영"]},
+  {hanzi:"姓", pinyin:"xìng", meaning:["성"]},
+  {hanzi:"贵姓", pinyin:"guìxìng", meaning:["성씨","성함"]},
+  {hanzi:"您贵姓？", pinyin:"nín guìxìng?", meaning:["성함이 어떻게 되십니까?","성함이 어떻게 되세요?"]},
+  {hanzi:"是", pinyin:"shì", meaning:["~이다","네","이다"]},
+  {hanzi:"不是", pinyin:"bú shì", meaning:["~이 아니다","아니다"]},
+  {hanzi:"哪", pinyin:"nǎ", meaning:["어느"]},
+  {hanzi:"国", pinyin:"guó", meaning:["나라"]},
+  {hanzi:"哪国人", pinyin:"nǎ guó rén", meaning:["어느 나라 사람"]},
+  {hanzi:"韩国", pinyin:"Hánguó", meaning:["한국"]},
+  {hanzi:"中国", pinyin:"Zhōngguó", meaning:["중국"]},
+  {hanzi:"美国", pinyin:"Měiguó", meaning:["미국"]},
+  {hanzi:"印度", pinyin:"Yìndù", meaning:["인도"]},
+  {hanzi:"日本", pinyin:"Rìběn", meaning:["일본"]},
+  {hanzi:"意大利", pinyin:"Yìdàlì", meaning:["이탈리아"]},
+  {hanzi:"加拿大", pinyin:"Jiānádà", meaning:["캐나다"]},
+  {hanzi:"西班牙", pinyin:"Xībānyá", meaning:["스페인"]},
+  {hanzi:"澳大利亚", pinyin:"Àodàlìyà", meaning:["오스트레일리아","호주"]},
+  {hanzi:"也", pinyin:"yě", meaning:["~도","또한","도"]},
+  {hanzi:"吗", pinyin:"ma", meaning:["~입니까?","~입니까"]},
+  {hanzi:"这", pinyin:"zhè", meaning:["이것","이 사람"]},
+  {hanzi:"那", pinyin:"nà", meaning:["저것","저 사람","그것"]},
+  {hanzi:"谁", pinyin:"shéi", meaning:["누구"]},
+  {hanzi:"今年", pinyin:"jīnnián", meaning:["올해"]},
+  {hanzi:"多", pinyin:"duō", meaning:["많다","얼마나"]},
+  {hanzi:"大", pinyin:"dà", meaning:["크다","나이가 많다"]},
+  {hanzi:"岁", pinyin:"suì", meaning:["살","세","나이"]},
+  {hanzi:"几", pinyin:"jǐ", meaning:["몇"]},
+  {hanzi:"年纪", pinyin:"niánjì", meaning:["나이","연령"]},
+  {hanzi:"有", pinyin:"yǒu", meaning:["있다","가지고 있다"]},
+  {hanzi:"没有", pinyin:"méiyǒu", meaning:["없다"]},
+  {hanzi:"只", pinyin:"zhǐ", meaning:["오직","단지"]},
+  {hanzi:"个", pinyin:"gè", meaning:["개","명"]},
+  {hanzi:"上", pinyin:"shàng", meaning:["~에 다니다","위"]},
+  {hanzi:"年级", pinyin:"niánjí", meaning:["학년"]},
+  {hanzi:"高中", pinyin:"gāozhōng", meaning:["고등학교"]},
+  {hanzi:"小学", pinyin:"xiǎoxué", meaning:["초등학교"]},
+  {hanzi:"初中", pinyin:"chūzhōng", meaning:["중학교"]},
+  {hanzi:"大学", pinyin:"dàxué", meaning:["대학교","대학"]},
+  {hanzi:"的", pinyin:"de", meaning:["~의","의"]},
+  {hanzi:"生日", pinyin:"shēngrì", meaning:["생일"]},
+  {hanzi:"月", pinyin:"yuè", meaning:["월"]},
+  {hanzi:"号", pinyin:"hào", meaning:["날짜의 일","일"]},
+  {hanzi:"星期", pinyin:"xīngqī", meaning:["요일"]},
+  {hanzi:"星期一", pinyin:"xīngqīyī", meaning:["월요일"]},
+  {hanzi:"星期二", pinyin:"xīngqī’èr", meaning:["화요일"]},
+  {hanzi:"星期三", pinyin:"xīngqīsān", meaning:["수요일"]},
+  {hanzi:"星期四", pinyin:"xīngqīsì", meaning:["목요일"]},
+  {hanzi:"星期五", pinyin:"xīngqīwǔ", meaning:["금요일"]},
+  {hanzi:"星期六", pinyin:"xīngqīliù", meaning:["토요일"]},
+  {hanzi:"星期天", pinyin:"xīngqītiān", meaning:["일요일"]},
+  {hanzi:"星期日", pinyin:"xīngqīrì", meaning:["일요일"]},
+  {hanzi:"今天", pinyin:"jīntiān", meaning:["오늘"]},
+  {hanzi:"昨天", pinyin:"zuótiān", meaning:["어제"]},
+  {hanzi:"前天", pinyin:"qiántiān", meaning:["그저께"]},
+  {hanzi:"后天", pinyin:"hòutiān", meaning:["모레"]},
+  {hanzi:"现在", pinyin:"xiànzài", meaning:["지금","현재"]},
+  {hanzi:"点", pinyin:"diǎn", meaning:["시"]},
+  {hanzi:"分", pinyin:"fēn", meaning:["분"]},
+  {hanzi:"半", pinyin:"bàn", meaning:["반","30분"]},
+  {hanzi:"刻", pinyin:"kè", meaning:["15분 단위","15분"]},
+  {hanzi:"一刻", pinyin:"yí kè", meaning:["15분"]},
+  {hanzi:"上学", pinyin:"shàngxué", meaning:["등교하다","등교"]},
+  {hanzi:"起床", pinyin:"qǐchuáng", meaning:["일어나다","기상하다","기상"]},
+  {hanzi:"上课", pinyin:"shàngkè", meaning:["수업하다","수업"]},
+  {hanzi:"回", pinyin:"huí", meaning:["돌아가다"]},
+  {hanzi:"家", pinyin:"jiā", meaning:["집"]},
+  {hanzi:"回家", pinyin:"huí jiā", meaning:["집에 돌아가다"]},
+  {hanzi:"睡觉", pinyin:"shuìjiào", meaning:["잠을 자다","자다"]},
+  {hanzi:"上午", pinyin:"shàngwǔ", meaning:["오전"]},
+  {hanzi:"中午", pinyin:"zhōngwǔ", meaning:["정오"]},
+  {hanzi:"下午", pinyin:"xiàwǔ", meaning:["오후"]},
+  {hanzi:"晚上", pinyin:"wǎnshang", meaning:["저녁","밤"]},
+  {hanzi:"两", pinyin:"liǎng", meaning:["둘","2"]},
+  {hanzi:"空", pinyin:"kòng", meaning:["시간","틈"]},
+  {hanzi:"有空", pinyin:"yǒu kòng", meaning:["시간이 있다"]},
+  {hanzi:"手机", pinyin:"shǒujī", meaning:["휴대전화","핸드폰","휴대폰"]},
+  {hanzi:"自行车", pinyin:"zìxíngchē", meaning:["자전거"]},
+  {hanzi:"车", pinyin:"chē", meaning:["차","탈것"]},
+  {hanzi:"爱好", pinyin:"àihào", meaning:["취미"]},
+  {hanzi:"喜欢", pinyin:"xǐhuan", meaning:["좋아하다"]},
+  {hanzi:"拍", pinyin:"pāi", meaning:["찍다"]},
+  {hanzi:"视频", pinyin:"shìpín", meaning:["동영상","영상"]},
+  {hanzi:"拍视频", pinyin:"pāi shìpín", meaning:["동영상을 찍다"]},
+  {hanzi:"将来", pinyin:"jiānglái", meaning:["장래","장차"]},
+  {hanzi:"想", pinyin:"xiǎng", meaning:["~하고 싶다","하고 싶다","생각하다","보고 싶다"]},
+  {hanzi:"当", pinyin:"dāng", meaning:["~이 되다","되다"]},
+  {hanzi:"网红", pinyin:"wǎnghóng", meaning:["인터넷 스타","인플루언서"]},
+  {hanzi:"做", pinyin:"zuò", meaning:["만들다","하다"]},
+  {hanzi:"菜", pinyin:"cài", meaning:["요리"]},
+  {hanzi:"做菜", pinyin:"zuò cài", meaning:["요리하다"]},
+  {hanzi:"听", pinyin:"tīng", meaning:["듣다"]},
+  {hanzi:"音乐", pinyin:"yīnyuè", meaning:["음악"]},
+  {hanzi:"听音乐", pinyin:"tīng yīnyuè", meaning:["음악을 듣다"]},
+  {hanzi:"电影", pinyin:"diànyǐng", meaning:["영화"]},
+  {hanzi:"看电影", pinyin:"kàn diànyǐng", meaning:["영화를 보다"]},
+  {hanzi:"医生", pinyin:"yīshēng", meaning:["의사"]},
+  {hanzi:"作家", pinyin:"zuòjiā", meaning:["작가"]},
+  {hanzi:"运动员", pinyin:"yùndòngyuán", meaning:["운동선수"]},
+  {hanzi:"会", pinyin:"huì", meaning:["~할 줄 알다","할 줄 알다"]},
+  {hanzi:"打", pinyin:"dǎ", meaning:["운동·놀이를 하다","치다","하다"]},
+  {hanzi:"乒乓球", pinyin:"pīngpāngqiú", meaning:["탁구"]},
+  {hanzi:"打乒乓球", pinyin:"dǎ pīngpāngqiú", meaning:["탁구를 치다"]},
+  {hanzi:"一起", pinyin:"yìqǐ", meaning:["함께","같이"]},
+  {hanzi:"吧", pinyin:"ba", meaning:["~하자","권유 어기조사"]},
+  {hanzi:"啊", pinyin:"a", meaning:["감탄·어기조사","감탄사"]},
+  {hanzi:"得", pinyin:"de", meaning:["정도보어 연결 표현"]},
+  {hanzi:"不错", pinyin:"búcuò", meaning:["좋다","괜찮다"]},
+  {hanzi:"哪儿", pinyin:"nǎr", meaning:["어디"]},
+  {hanzi:"篮球", pinyin:"lánqiú", meaning:["농구"]},
+  {hanzi:"打篮球", pinyin:"dǎ lánqiú", meaning:["농구하다","농구를 하다"]},
+  {hanzi:"太极拳", pinyin:"tàijíquán", meaning:["태극권"]},
+  {hanzi:"打太极拳", pinyin:"dǎ tàijíquán", meaning:["태극권을 하다"]},
+  {hanzi:"踢", pinyin:"tī", meaning:["차다"]},
+  {hanzi:"足球", pinyin:"zúqiú", meaning:["축구","축구공"]},
+  {hanzi:"踢足球", pinyin:"tī zúqiú", meaning:["축구하다","축구를 하다"]},
+  {hanzi:"写", pinyin:"xiě", meaning:["쓰다"]},
+  {hanzi:"很", pinyin:"hěn", meaning:["매우","아주"]},
+  {hanzi:"唱", pinyin:"chàng", meaning:["노래하다"]},
+  {hanzi:"非常", pinyin:"fēicháng", meaning:["매우","대단히"]},
+  {hanzi:"画", pinyin:"huà", meaning:["그리다"]},
+  {hanzi:"太", pinyin:"tài", meaning:["아주","너무"]},
+  {hanzi:"真", pinyin:"zhēn", meaning:["정말"]},
+  {hanzi:"棒", pinyin:"bàng", meaning:["훌륭하다"]},
+  {hanzi:"真棒", pinyin:"zhēn bàng", meaning:["정말 훌륭해"]},
+  {hanzi:"极", pinyin:"jí", meaning:["매우","극히"]},
+  {hanzi:"好极了", pinyin:"hǎo jí le", meaning:["아주 좋아"]},
+  {hanzi:"厉害", pinyin:"lìhai", meaning:["대단하다"]},
+  {hanzi:"很厉害", pinyin:"hěn lìhai", meaning:["매우 대단하다"]},
+  {hanzi:"怎么", pinyin:"zěnme", meaning:["어떻게"]},
+  {hanzi:"去", pinyin:"qù", meaning:["가다"]},
+  {hanzi:"坐", pinyin:"zuò", meaning:["타다","앉다"]},
+  {hanzi:"地铁", pinyin:"dìtiě", meaning:["지하철"]},
+  {hanzi:"站", pinyin:"zhàn", meaning:["역"]},
+  {hanzi:"地铁站", pinyin:"dìtiě zhàn", meaning:["지하철역"]},
+  {hanzi:"远", pinyin:"yuǎn", meaning:["멀다"]},
+  {hanzi:"往", pinyin:"wǎng", meaning:["~을 향해","향해"]},
+  {hanzi:"前", pinyin:"qián", meaning:["앞"]},
+  {hanzi:"走", pinyin:"zǒu", meaning:["걷다","가다"]},
+  {hanzi:"就", pinyin:"jiù", meaning:["바로","곧"]},
+  {hanzi:"到", pinyin:"dào", meaning:["도착하다","도착"]},
+  {hanzi:"了", pinyin:"le", meaning:["완료·변화 어기조사","어기조사"]},
+  {hanzi:"火车", pinyin:"huǒchē", meaning:["기차"]},
+  {hanzi:"公共汽车", pinyin:"gōnggòngqìchē", meaning:["버스"]},
+  {hanzi:"骑", pinyin:"qí", meaning:["타다"]},
+  {hanzi:"左", pinyin:"zuǒ", meaning:["왼쪽"]},
+  {hanzi:"右", pinyin:"yòu", meaning:["오른쪽"]},
+  {hanzi:"拐", pinyin:"guǎi", meaning:["돌다"]},
+  {hanzi:"往左拐", pinyin:"wǎng zuǒ guǎi", meaning:["왼쪽으로 돌다"]},
+  {hanzi:"往右拐", pinyin:"wǎng yòu guǎi", meaning:["오른쪽으로 돌다"]},
+  {hanzi:"硬座", pinyin:"yìngzuò", meaning:["일반 좌석"]},
+  {hanzi:"软座", pinyin:"ruǎnzuò", meaning:["고급 좌석"]},
+  {hanzi:"硬卧", pinyin:"yìngwò", meaning:["일반 침대칸"]},
+  {hanzi:"软卧", pinyin:"ruǎnwò", meaning:["고급 침대칸"]},
+  {hanzi:"有点儿", pinyin:"yǒudiǎnr", meaning:["조금","약간"]},
+  {hanzi:"头疼", pinyin:"tóuténg", meaning:["머리가 아프다"]},
+  {hanzi:"医院", pinyin:"yīyuàn", meaning:["병원"]},
+  {hanzi:"在", pinyin:"zài", meaning:["~에 있다","있다"]},
+  {hanzi:"学校", pinyin:"xuéxiào", meaning:["학교"]},
+  {hanzi:"旁边", pinyin:"pángbiān", meaning:["옆","옆쪽"]},
+  {hanzi:"发烧", pinyin:"fāshāo", meaning:["열이 나다"]},
+  {hanzi:"咳嗽", pinyin:"késou", meaning:["기침하다","기침"]},
+  {hanzi:"流鼻涕", pinyin:"liú bítì", meaning:["콧물이 흐르다"]},
+  {hanzi:"鼻涕", pinyin:"bítì", meaning:["콧물"]},
+  {hanzi:"银行", pinyin:"yínháng", meaning:["은행"]},
+  {hanzi:"左边", pinyin:"zuǒbian", meaning:["왼쪽"]},
+  {hanzi:"右边", pinyin:"yòubian", meaning:["오른쪽"]},
+  {hanzi:"超市", pinyin:"chāoshì", meaning:["슈퍼마켓","마트"]},
+  {hanzi:"洗手间", pinyin:"xǐshǒujiān", meaning:["화장실"]},
+  {hanzi:"前边", pinyin:"qiánbian", meaning:["앞쪽","앞"]},
+  {hanzi:"后边", pinyin:"hòubian", meaning:["뒤쪽","뒤"]},
+  {hanzi:"看看", pinyin:"kànkan", meaning:["한번 보다"]},
+  {hanzi:"健康", pinyin:"jiànkāng", meaning:["건강"]},
+  {hanzi:"热水", pinyin:"rèshuǐ", meaning:["따뜻한 물","뜨거운 물"]},
+  {hanzi:"茶", pinyin:"chá", meaning:["차"]},
+  {hanzi:"恭喜恭喜", pinyin:"gōngxǐ gōngxǐ", meaning:["축하합니다","축하해"]},
+  {hanzi:"慢走", pinyin:"mànzǒu", meaning:["조심히 가세요","잘 가"]},
+  {hanzi:"晚安", pinyin:"wǎn’ān", meaning:["잘 자"]},
+  {hanzi:"拱手", pinyin:"gǒngshǒu", meaning:["공수 인사","공수"]},
+  {hanzi:"抱拳", pinyin:"bàoquán", meaning:["포권 인사","포권"]},
+  {hanzi:"春节", pinyin:"Chūnjié", meaning:["춘절","설"]},
+  {hanzi:"饺子", pinyin:"jiǎozi", meaning:["만두"]},
+  {hanzi:"红包", pinyin:"hóngbāo", meaning:["빨간 봉투","세뱃돈"]},
+  {hanzi:"端午节", pinyin:"Duānwǔjié", meaning:["단오절","단오"]},
+  {hanzi:"粽子", pinyin:"zòngzi", meaning:["쭝쯔","대나무 잎에 싼 찹쌀밥"]},
+  {hanzi:"中秋节", pinyin:"Zhōngqiūjié", meaning:["중추절","추석"]},
+  {hanzi:"月饼", pinyin:"yuèbǐng", meaning:["월병"]},
+  {hanzi:"赏月", pinyin:"shǎngyuè", meaning:["달구경하다","달구경"]},
+  {hanzi:"劳动节", pinyin:"Láodòngjié", meaning:["노동절"]},
+  {hanzi:"国庆节", pinyin:"Guóqìngjié", meaning:["국경절"]},
+  {hanzi:"儿童节", pinyin:"Értóngjié", meaning:["어린이날"]},
+  {hanzi:"教师节", pinyin:"Jiàoshījié", meaning:["스승의 날"]},
+  {hanzi:"长寿面", pinyin:"chángshòumiàn", meaning:["장수면"]},
+  {hanzi:"寿桃", pinyin:"shòutáo", meaning:["복숭아 모양 생일 음식"]},
+  {hanzi:"生日快乐", pinyin:"shēngrì kuàilè", meaning:["생일 축하합니다","생일 축하해"]},
+  {hanzi:"军训", pinyin:"jūnxùn", meaning:["군사 훈련","군훈"]},
+  {hanzi:"高考", pinyin:"gāokǎo", meaning:["중국 대학 입학시험","가오카오"]},
+  {hanzi:"课间操", pinyin:"kèjiāncāo", meaning:["쉬는 시간 체조"]},
+  {hanzi:"午睡", pinyin:"wǔshuì", meaning:["낮잠"]},
+  {hanzi:"眼保健操", pinyin:"yǎn bǎojiàn cāo", meaning:["눈 보호 체조"]},
+  {hanzi:"京剧", pinyin:"Jīngjù", meaning:["경극"]},
+  {hanzi:"北京", pinyin:"Běijīng", meaning:["베이징"]},
+  {hanzi:"变脸", pinyin:"biànliǎn", meaning:["변검"]},
+  {hanzi:"四川", pinyin:"Sìchuān", meaning:["쓰촨"]},
+  {hanzi:"脸谱", pinyin:"liǎnpǔ", meaning:["경극 얼굴 분장","검보"]},
+  {hanzi:"红脸", pinyin:"hóngliǎn", meaning:["붉은 얼굴 분장"]},
+  {hanzi:"黑脸", pinyin:"hēiliǎn", meaning:["검은 얼굴 분장"]},
+  {hanzi:"白脸", pinyin:"báiliǎn", meaning:["흰 얼굴 분장"]},
+  {hanzi:"黄脸", pinyin:"huángliǎn", meaning:["노란 얼굴 분장"]},
+  {hanzi:"蓝脸", pinyin:"lánliǎn", meaning:["파란 얼굴 분장"]},
+  {hanzi:"故宫", pinyin:"Gùgōng", meaning:["고궁"]},
+  {hanzi:"紫禁城", pinyin:"Zǐjìnchéng", meaning:["자금성"]},
+  {hanzi:"上海", pinyin:"Shànghǎi", meaning:["상하이"]},
+  {hanzi:"东方明珠", pinyin:"Dōngfāngmíngzhū", meaning:["동방명주"]},
+  {hanzi:"西安", pinyin:"Xī’ān", meaning:["시안"]},
+  {hanzi:"兵马俑", pinyin:"Bīngmǎyǒng", meaning:["병마용"]},
+  {hanzi:"哈尔滨", pinyin:"Hā’ěrbīn", meaning:["하얼빈"]},
+  {hanzi:"国际冰雪节", pinyin:"Guójì Bīngxuějié", meaning:["국제 빙설제"]},
+  {hanzi:"内蒙古", pinyin:"Nèi Měnggǔ", meaning:["내몽골"]},
+  {hanzi:"蒙古包", pinyin:"měnggǔbāo", meaning:["몽골식 전통 가옥","게르"]},
+  {hanzi:"拉萨", pinyin:"Lāsà", meaning:["라싸"]},
+  {hanzi:"布达拉宫", pinyin:"Bùdálāgōng", meaning:["포탈라궁"]},
+  {hanzi:"香港", pinyin:"Xiānggǎng", meaning:["홍콩"]},
+  {hanzi:"维多利亚峰", pinyin:"Wéiduōlìyà Fēng", meaning:["빅토리아 피크"]},
+  {hanzi:"长城", pinyin:"Chángchéng", meaning:["만리장성","장성"]},
+  {hanzi:"青藏铁路", pinyin:"Qīngzàng Tiělù", meaning:["칭짱 철도","청장 철도"]},
+  {hanzi:"天安门", pinyin:"Tiān’ān Mén", meaning:["톈안먼","천안문"]},
+  {hanzi:"中华人民共和国", pinyin:"Zhōnghuá Rénmín Gònghéguó", meaning:["중화인민공화국"]},
+  {hanzi:"王美丽", pinyin:"Wáng Měilì", meaning:["왕메이리","사람 이름"]},
+  {hanzi:"金太阳", pinyin:"Jīn Tàiyáng", meaning:["진타이양","사람 이름"]},
+  {hanzi:"柳宽顺", pinyin:"Liǔ Kuānshùn", meaning:["유관순"]},
+  {hanzi:"鲁迅", pinyin:"Lǔ Xùn", meaning:["루쉰"]},
+  {hanzi:"贝多芬", pinyin:"Bèiduōfēn", meaning:["베토벤"]},
+  {hanzi:"苹果", pinyin:"píngguǒ", meaning:["사과"]},
+  {hanzi:"平安", pinyin:"píng’ān", meaning:["평안","무사함"]},
+  {hanzi:"伞", pinyin:"sǎn", meaning:["우산"]},
+  {hanzi:"散", pinyin:"sàn", meaning:["흩어지다","헤어지다"]},
+  {hanzi:"橘子", pinyin:"júzi", meaning:["귤"]},
+  {hanzi:"吉利", pinyin:"jílì", meaning:["길하다","운이 좋다"]},
+  {hanzi:"钟", pinyin:"zhōng", meaning:["시계","종"]},
+  {hanzi:"终", pinyin:"zhōng", meaning:["끝나다","마치다"]},
+  {hanzi:"送钟", pinyin:"sòng zhōng", meaning:["시계를 선물하다"]},
+  {hanzi:"送终", pinyin:"sòng zhōng", meaning:["임종을 지키다"]},
+  {hanzi:"鱼", pinyin:"yú", meaning:["물고기"]},
+  {hanzi:"余", pinyin:"yú", meaning:["남다","여유"]},
+  {hanzi:"年年有余", pinyin:"niánnián yǒuyú", meaning:["해마다 풍요롭기를 바란다는 말","해마다 풍요"]},
+  {hanzi:"蝠", pinyin:"fú", meaning:["박쥐"]},
+  {hanzi:"福", pinyin:"fú", meaning:["복"]},
+  {hanzi:"五福", pinyin:"wǔfú", meaning:["오복"]},
+  {hanzi:"四", pinyin:"sì", meaning:["4","사","넷"]},
+  {hanzi:"死", pinyin:"sǐ", meaning:["죽다"]},
+  {hanzi:"八", pinyin:"bā", meaning:["8","팔","여덟"]},
+  {hanzi:"发", pinyin:"fā", meaning:["돈을 벌다","번창하다"]},
+  {hanzi:"发财", pinyin:"fācái", meaning:["돈을 벌다","부자가 되다"]},
+  {hanzi:"九", pinyin:"jiǔ", meaning:["9","구","아홉"]},
+  {hanzi:"久", pinyin:"jiǔ", meaning:["오래되다"]},
+  {hanzi:"五", pinyin:"wǔ", meaning:["5","오","다섯"]},
+  {hanzi:"三", pinyin:"sān", meaning:["3","삼","셋"]},
+  {hanzi:"零", pinyin:"líng", meaning:["0","영","공"]},
+  {hanzi:"五三零", pinyin:"wǔ sān líng", meaning:["530"]},
+  {hanzi:"我想你", pinyin:"wǒ xiǎng nǐ", meaning:["네가 보고 싶어","보고 싶어"]},
+  {hanzi:"卡", pinyin:"kǎ", meaning:["카드"]},
+  {hanzi:"沙发", pinyin:"shāfā", meaning:["소파"]},
+  {hanzi:"比萨", pinyin:"bǐsà", meaning:["피자"]},
+  {hanzi:"咖啡", pinyin:"kāfēi", meaning:["커피"]},
+  {hanzi:"芒果", pinyin:"mángguǒ", meaning:["망고"]},
+  {hanzi:"蓝", pinyin:"lán", meaning:["푸르다","파랗다"]},
+  {hanzi:"牙", pinyin:"yá", meaning:["이","치아"]},
+  {hanzi:"蓝牙", pinyin:"lányá", meaning:["블루투스"]},
+  {hanzi:"电", pinyin:"diàn", meaning:["전기"]},
+  {hanzi:"脑", pinyin:"nǎo", meaning:["두뇌","뇌"]},
+  {hanzi:"电脑", pinyin:"diànnǎo", meaning:["컴퓨터"]},
+  {hanzi:"热", pinyin:"rè", meaning:["뜨겁다"]},
+  {hanzi:"狗", pinyin:"gǒu", meaning:["개"]},
+  {hanzi:"热狗", pinyin:"règǒu", meaning:["핫도그"]},
+  {hanzi:"世界", pinyin:"shìjiè", meaning:["세계"]},
+  {hanzi:"杯", pinyin:"bēi", meaning:["잔","컵"]},
+  {hanzi:"世界杯", pinyin:"shìjièbēi", meaning:["월드컵"]},
+  {hanzi:"因特", pinyin:"yīntè", meaning:["인터","외래어 음역"]},
+  {hanzi:"网", pinyin:"wǎng", meaning:["그물","인터넷망"]},
+  {hanzi:"因特网", pinyin:"yīntèwǎng", meaning:["인터넷"]},
+  {hanzi:"冰", pinyin:"bīng", meaning:["얼음"]},
+  {hanzi:"淇淋", pinyin:"qílín", meaning:["크림의 음역 표현","크림"]},
+  {hanzi:"冰淇淋", pinyin:"bīngqílín", meaning:["아이스크림"]},
+  {hanzi:"信用", pinyin:"xìnyòng", meaning:["신용"]},
+  {hanzi:"信用卡", pinyin:"xìnyòngkǎ", meaning:["신용카드"]},
+  {hanzi:"迷你", pinyin:"mínǐ", meaning:["미니"]},
+  {hanzi:"裙", pinyin:"qún", meaning:["치마"]},
+  {hanzi:"迷你裙", pinyin:"mínǐqún", meaning:["미니스커트"]},
+  {hanzi:"护士", pinyin:"hùshi", meaning:["간호사"]},
+  {hanzi:"地图", pinyin:"dìtú", meaning:["지도"]},
+  {hanzi:"流行", pinyin:"liúxíng", meaning:["유행하다","유행"]}
+];
+
+/* 기본 제외 단어 (처음 한 번만 자동 제외 목록에 추가) */
+const DEFAULT_EXCLUDED_HANZI = ["眼保健操","紫禁城","外孙女","兵马俑","故宫","课间操","抱拳"];
+
+const STORAGE_KEY = "chineseQuizState_v1";
+
+/* =========================================================
+   상태 관리
+   ========================================================= */
+function defaultExcludedIdx(){
+  const set = [];
+  DEFAULT_EXCLUDED_HANZI.forEach(h=>{
+    const i = WORDS.findIndex(w=>w.hanzi===h);
+    if(i>=0 && !set.includes(i)) set.push(i);
+  });
+  return set;
+}
+
+function freshState(){
+  return {
+    solved:[],            // 맞힌 단어 인덱스
+    retry:[],             // 재시험 목록 인덱스
+    excluded:defaultExcludedIdx(), // 제외 단어 인덱스
+    total:0,              // 총 풀이 수
+    correct:0,            // 정답 수
+    wrong:0               // 오답 수
+  };
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return freshState();
+    const s = JSON.parse(raw);
+    // 안전 보정
+    s.solved   = Array.isArray(s.solved)?s.solved:[];
+    s.retry    = Array.isArray(s.retry)?s.retry:[];
+    s.excluded = Array.isArray(s.excluded)?s.excluded:[];
+    s.total    = s.total|0;
+    s.correct  = s.correct|0;
+    s.wrong    = s.wrong|0;
+    return s;
+  }catch(e){
+    return freshState();
+  }
+}
+
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+let state = loadState();
+
+/* 런타임 변수 */
+let mode = "normal";          // "normal" | "retry"
+let currentIndex = null;      // 현재 출제 단어의 WORDS 인덱스
+let currentOptions = [];      // [{pinyin, correct}]
+let selectedOption = null;    // 선택한 보기 인덱스
+let answered = false;
+let questionCounter = 0;
+
+/* =========================================================
+   유틸
+   ========================================================= */
+function $(id){ return document.getElementById(id); }
+function addToSet(arr, v){ if(!arr.includes(v)) arr.push(v); }
+function removeFrom(arr, v){ const i=arr.indexOf(v); if(i>=0) arr.splice(i,1); }
+function shuffle(a){
+  const arr=a.slice();
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+function normalize(s){ return (s||"").replace(/\s+/g,"").toLowerCase(); }
+
+/* 일반/재시험 출제 풀 */
+function getPool(m){
+  const pool=[];
+  if(m==="retry"){
+    state.retry.forEach(i=>{ if(!state.excluded.includes(i)) pool.push(i); });
+  }else{
+    for(let i=0;i<WORDS.length;i++){
+      if(state.solved.includes(i)) continue;
+      if(state.retry.includes(i)) continue;
+      if(state.excluded.includes(i)) continue;
+      pool.push(i);
+    }
+  }
+  return pool;
+}
+
+/* =========================================================
+   통계 렌더링
+   ========================================================= */
+function renderStats(){
+  $("stTotal").textContent  = WORDS.length;
+  $("stRemain").textContent = getPool("normal").length;
+  $("stSolved").textContent = state.solved.length;
+  $("stRetry").textContent  = state.retry.length;
+  $("stExcl").textContent   = state.excluded.length;
+  const rate = state.total>0 ? Math.round(state.correct/state.total*100) : 0;
+  $("stRate").textContent   = rate + "%";
+  $("modeTag").innerHTML = "현재 모드: <b>" + (mode==="retry"?"재시험":"일반 퀴즈") + "</b>";
+}
+
+/* =========================================================
+   문제 출제
+   ========================================================= */
+function buildOptions(){
+  const word = WORDS[currentIndex];
+  const correct = {pinyin:word.pinyin, correct:true};
+  // 정답과 다른 pinyin 후보(중복 제거)에서 4개 랜덤
+  const seen = new Set([word.pinyin]);
+  const distract = [];
+  const candidates = shuffle(WORDS);
+  for(const w of candidates){
+    if(distract.length===4) break;
+    if(!seen.has(w.pinyin)){
+      seen.add(w.pinyin);
+      distract.push({pinyin:w.pinyin, correct:false});
+    }
+  }
+  currentOptions = shuffle([correct, ...distract]);
+}
+
+function renderQuestion(){
+  renderStats();
+  const pool = getPool(mode);
+
+  if(pool.length===0){
+    // 출제할 단어 없음 → 완료 메시지
+    $("quizCard").classList.add("hidden");
+    $("doneCard").classList.remove("hidden");
+    if(mode==="retry"){
+      $("doneMsg").innerHTML = "🎉 재시험할 단어가 없습니다<small>틀린 문제가 생기면 여기에서 다시 풀 수 있어요.</small>";
+    }else{
+      $("doneMsg").innerHTML = "🎉 일반 퀴즈 완료!<small>모든 일반 단어를 다 맞혔어요. 재시험을 풀어보세요.</small>";
+    }
+    return;
+  }
+
+  $("doneCard").classList.add("hidden");
+  $("quizCard").classList.remove("hidden");
+
+  // 상태 초기화
+  answered = false;
+  selectedOption = null;
+  questionCounter++;
+
+  currentIndex = pool[Math.floor(Math.random()*pool.length)];
+  buildOptions();
+
+  const word = WORDS[currentIndex];
+  $("qnum").textContent = (mode==="retry"?"[재시험] ":"") + "문제 " + questionCounter + " · 남은 " + pool.length + "개";
+  $("hanzi").textContent = word.hanzi;
+
+  // 보기 렌더
+  const wrap = $("options");
+  wrap.innerHTML = "";
+  currentOptions.forEach((opt, idx)=>{
+    const b = document.createElement("button");
+    b.className = "opt";
+    b.innerHTML = '<span class="badge">'+(idx+1)+'</span><span>'+opt.pinyin+'</span>';
+    b.addEventListener("click", ()=>selectOption(idx));
+    wrap.appendChild(b);
+  });
+
+  // 입력/버튼 초기화
+  const mi = $("meaningInput");
+  mi.value = "";
+  mi.disabled = false;
+  $("result").classList.add("hidden");
+  $("result").className = "result hidden";
+  $("submitBtn").disabled = false;
+  $("submitBtn").classList.remove("hidden");
+  $("nextBtn").classList.add("hidden");
+  mi.focus();
+}
+
+function selectOption(idx){
+  if(answered) return;
+  selectedOption = idx;
+  const btns = $("options").querySelectorAll(".opt");
+  btns.forEach((b,i)=> b.classList.toggle("selected", i===idx));
+}
+
+/* =========================================================
+   채점
+   ========================================================= */
+function checkMeaning(input, meanings){
+  const u = normalize(input);
+  if(!u) return false;
+  return meanings.some(m=>{
+    const mm = normalize(m);
+    return mm && (u.includes(mm) || mm.includes(u));
+  });
+}
+
+function submit(){
+  if(answered) return;
+  if(selectedOption===null){
+    // 병음 미선택 안내
+    const mi=$("meaningInput");
+    mi.placeholder = "먼저 병음을 선택하세요!";
+    $("options").querySelectorAll(".opt").forEach(b=>{
+      b.animate([{transform:"translateX(-3px)"},{transform:"translateX(3px)"},{transform:"translateX(0)"}],{duration:150});
+    });
+    return;
+  }
+
+  answered = true;
+  const word = WORDS[currentIndex];
+  const pinyinOK  = currentOptions[selectedOption].correct;
+  const meaningOK = checkMeaning($("meaningInput").value, word.meaning);
+  const isCorrect = pinyinOK && meaningOK;
+
+  // 통계
+  state.total++;
+  if(isCorrect) state.correct++; else state.wrong++;
+
+  // 목록 갱신
+  if(mode==="normal"){
+    if(isCorrect){
+      addToSet(state.solved, currentIndex);
+    }else{
+      addToSet(state.retry, currentIndex); // 중복 추가 방지됨
+    }
+  }else{ // retry 모드
+    if(isCorrect){
+      removeFrom(state.retry, currentIndex);
+      addToSet(state.solved, currentIndex);
+    }
+    // 오답이면 재시험 목록에 그대로 유지
+  }
+  saveState();
+
+  // 보기 정답/오답 시각화
+  const btns = $("options").querySelectorAll(".opt");
+  btns.forEach((b,i)=>{
+    b.disabled = true;
+    if(currentOptions[i].correct) b.classList.add("correct");
+    else if(i===selectedOption) b.classList.add("wrong");
+  });
+
+  // 입력/버튼 잠금
+  $("meaningInput").disabled = true;
+  $("submitBtn").classList.add("hidden");
+  $("nextBtn").classList.remove("hidden");
+
+  // 결과 표시
+  const r = $("result");
+  r.className = "result " + (isCorrect?"ok":"no");
+  r.innerHTML =
+    '<div class="head">'+(isCorrect?"⭕ 정답!":"❌ 오답")+'</div>' +
+    '<div class="row">병음 '+(pinyinOK?"⭕":"❌")+' · 뜻 '+(meaningOK?"⭕":"❌")+'</div>' +
+    '<div class="row"><b>정답 병음:</b> '+word.pinyin+'</div>' +
+    '<div class="row"><b>정답 뜻:</b> '+word.meaning.join(", ")+'</div>' +
+    (isCorrect?'':'<div class="row" style="color:#b4262a;margin-top:4px;">→ 재시험 목록에 추가되었습니다.</div>');
+
+  renderStats();
+}
+
+/* =========================================================
+   제외 / 모드 전환 / 초기화
+   ========================================================= */
+function excludeCurrent(){
+  if(currentIndex===null) return;
+  addToSet(state.excluded, currentIndex);
+  removeFrom(state.retry, currentIndex);
+  removeFrom(state.solved, currentIndex);
+  saveState();
+  renderQuestion();
+}
+
+function startMode(m){
+  mode = m;
+  questionCounter = 0;
+  renderQuestion();
+}
+
+function resetAll(){
+  if(!confirm("모든 기록을 삭제하고 처음부터 시작할까요?")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = freshState();
+  saveState();
+  mode = "normal";
+  questionCounter = 0;
+  renderQuestion();
+}
+
+/* =========================================================
+   모달 (목록 보기)
+   ========================================================= */
+function openModal(title, sub, bodyHtml){
+  $("modalTitle").textContent = title;
+  $("modalSub").textContent = sub;
+  $("modalBody").innerHTML = bodyHtml;
+  $("modalBg").classList.remove("hidden");
+}
+function closeModal(){ $("modalBg").classList.add("hidden"); }
+
+function listHtml(indices, type){
+  if(indices.length===0){
+    return '<div class="empty">목록이 비어 있습니다.</div>';
+  }
+  return indices.map(i=>{
+    const w = WORDS[i];
+    const btn = type==="excluded"
+      ? '<button class="mini" data-restore="'+i+'">복원</button>'
+      : '';
+    return '<div class="list-item">' +
+             '<div class="hz">'+w.hanzi+'</div>' +
+             '<div class="info"><div class="py">'+w.pinyin+'</div><div class="mn">'+w.meaning.join(", ")+'</div></div>' +
+             btn +
+           '</div>';
+  }).join("");
+}
+
+function showRetryList(){
+  openModal("재시험 목록", "틀려서 다시 풀어야 하는 단어들입니다.", listHtml(state.retry, "retry"));
+}
+function showExcludedList(){
+  openModal("제외 단어 목록", "퀴즈에서 제외된 단어들입니다. 복원하면 다시 출제됩니다.", listHtml(state.excluded, "excluded"));
+}
+
+/* =========================================================
+   이벤트 바인딩
+   ========================================================= */
+$("submitBtn").addEventListener("click", submit);
+$("nextBtn").addEventListener("click", renderQuestion);
+$("retryStartBtn").addEventListener("click", ()=>startMode("retry"));
+$("normalBtn").addEventListener("click", ()=>startMode("normal"));
+$("retryListBtn").addEventListener("click", showRetryList);
+$("exclListBtn").addEventListener("click", showExcludedList);
+$("resetBtn").addEventListener("click", resetAll);
+$("modalClose").addEventListener("click", closeModal);
+$("modalBg").addEventListener("click",(e)=>{ if(e.target===$("modalBg")) closeModal(); });
+
+// 모달 내 복원 버튼 (이벤트 위임)
+$("modalBody").addEventListener("click",(e)=>{
+  const t=e.target;
+  if(t.dataset && t.dataset.restore!==undefined){
+    const i=parseInt(t.dataset.restore,10);
+    removeFrom(state.excluded, i);
+    saveState();
+    showExcludedList(); // 목록 새로고침
+    renderStats();
+  }
+});
+
+// Enter 제출 / 다음
+$("meaningInput").addEventListener("keydown",(e)=>{
+  if(e.key==="Enter"){ e.preventDefault(); submit(); }
+});
+document.addEventListener("keydown",(e)=>{
+  if(e.key==="Enter" && answered && !$("nextBtn").classList.contains("hidden")){
+    renderQuestion();
+  }
+  // 숫자키 1~5로 보기 선택
+  if(!answered && /^[1-5]$/.test(e.key)){
+    const idx=parseInt(e.key,10)-1;
+    if(idx<currentOptions.length) selectOption(idx);
+  }
+});
+
+// 제외하기 버튼을 카드 하단 컨트롤 위에 동적 삽입
+(function addExcludeButton(){
+  const card=$("quizCard");
+  const btn=document.createElement("button");
+  btn.className="btn btn-ghost";
+  btn.style.marginTop="8px";
+  btn.textContent="이 단어 제외하기";
+  btn.addEventListener("click", excludeCurrent);
+  card.appendChild(btn);
+})();
+
+/* 시작 */
+renderQuestion();
+</script>
+</body>
+</html>
