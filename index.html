@@ -178,6 +178,16 @@
     background:#eef1f7;color:#374151;
   }
   .btn-ghost:hover{background:#e2e7f1;}
+  .btn-amber{background:#f59e0b;color:#fff;}
+  .btn-amber:hover{background:#d97706;}
+
+  /* 재시험 선택 버튼 묶음 */
+  .retry-actions{
+    display:flex;
+    gap:8px;
+    margin-top:8px;
+  }
+  .retry-actions .btn{flex:1;}
 
   /* 결과 */
   .result{
@@ -305,6 +315,8 @@
 
     <button class="btn btn-primary" id="submitBtn">제출</button>
     <button class="btn btn-next hidden" id="nextBtn" style="margin-top:8px;">다음 문제 →</button>
+    <!-- 오답 후 재시험 여부 선택 버튼 (동적으로 내용 채워짐) -->
+    <div class="retry-actions hidden" id="retryActions"></div>
   </section>
 
   <!-- 완료 메시지 카드 -->
@@ -856,6 +868,8 @@ function renderQuestion(){
   $("submitBtn").disabled = false;
   $("submitBtn").classList.remove("hidden");
   $("nextBtn").classList.add("hidden");
+  $("retryActions").classList.add("hidden");
+  $("retryActions").innerHTML = "";
   mi.focus();
 }
 
@@ -900,19 +914,14 @@ function submit(){
   state.total++;
   if(isCorrect) state.correct++; else state.wrong++;
 
-  // 목록 갱신
-  if(mode==="normal"){
-    if(isCorrect){
+  // 정답인 경우만 즉시 상태 갱신 (오답은 사용자 선택 후 갱신)
+  if(isCorrect){
+    if(mode==="normal"){
       addToSet(state.solved, currentIndex);
     }else{
-      addToSet(state.retry, currentIndex); // 중복 추가 방지됨
-    }
-  }else{ // retry 모드
-    if(isCorrect){
       removeFrom(state.retry, currentIndex);
       addToSet(state.solved, currentIndex);
     }
-    // 오답이면 재시험 목록에 그대로 유지
   }
   saveState();
 
@@ -924,10 +933,9 @@ function submit(){
     else if(i===selectedOption) b.classList.add("wrong");
   });
 
-  // 입력/버튼 잠금
+  // 입력/제출 버튼 잠금
   $("meaningInput").disabled = true;
   $("submitBtn").classList.add("hidden");
-  $("nextBtn").classList.remove("hidden");
 
   // 결과 표시
   const r = $("result");
@@ -936,10 +944,56 @@ function submit(){
     '<div class="head">'+(isCorrect?"⭕ 정답!":"❌ 오답")+'</div>' +
     '<div class="row">병음 '+(pinyinOK?"⭕":"❌")+' · 뜻 '+(meaningOK?"⭕":"❌")+'</div>' +
     '<div class="row"><b>정답 병음:</b> '+word.pinyin+'</div>' +
-    '<div class="row"><b>정답 뜻:</b> '+word.meaning.join(", ")+'</div>' +
-    (isCorrect?'':'<div class="row" style="color:#b4262a;margin-top:4px;">→ 재시험 목록에 추가되었습니다.</div>');
+    '<div class="row"><b>정답 뜻:</b> '+word.meaning.join(", ")+'</div>';
+
+  if(isCorrect){
+    // 정답 → 다음 문제 버튼
+    $("nextBtn").classList.remove("hidden");
+  }else{
+    // 오답 → 재시험 여부 사용자 선택
+    const ra = $("retryActions");
+    ra.classList.remove("hidden");
+    if(mode==="normal"){
+      const alreadyInRetry = state.retry.includes(currentIndex);
+      if(alreadyInRetry){
+        ra.innerHTML =
+          '<button class="btn btn-ghost" id="raSkip">추가하지 않기</button>' +
+          '<button class="btn btn-amber" id="raAdd" disabled style="opacity:.5;cursor:default">이미 재시험에 있음</button>';
+      }else{
+        ra.innerHTML =
+          '<button class="btn btn-ghost" id="raSkip">추가하지 않기</button>' +
+          '<button class="btn btn-amber" id="raAdd">재시험 목록에 추가</button>';
+        $("raAdd").addEventListener("click", ()=>resolveNormal(true));
+      }
+      $("raSkip").addEventListener("click", ()=>resolveNormal(false));
+    }else{
+      // retry 모드 오답: 유지 or 제거
+      ra.innerHTML =
+        '<button class="btn btn-amber" id="raKeep">재시험 목록에 유지</button>' +
+        '<button class="btn btn-ghost" id="raRemove">재시험 목록에서 제거</button>';
+      $("raKeep").addEventListener("click", ()=>resolveRetryMode(true));
+      $("raRemove").addEventListener("click", ()=>resolveRetryMode(false));
+    }
+  }
 
   renderStats();
+}
+
+/* =========================================================
+   오답 후 재시험 여부 처리
+   ========================================================= */
+function resolveNormal(addToList){
+  if(addToList) addToSet(state.retry, currentIndex);
+  saveState();
+  renderStats();
+  renderQuestion();
+}
+
+function resolveRetryMode(keep){
+  if(!keep) removeFrom(state.retry, currentIndex);
+  saveState();
+  renderStats();
+  renderQuestion();
 }
 
 /* =========================================================
@@ -1035,7 +1089,8 @@ $("meaningInput").addEventListener("keydown",(e)=>{
   if(e.key==="Enter"){ e.preventDefault(); submit(); }
 });
 document.addEventListener("keydown",(e)=>{
-  if(e.key==="Enter" && answered && !$("nextBtn").classList.contains("hidden")){
+  // 정답인 경우만 Enter로 다음 문제(오답은 버튼으로 직접 선택해야 함)
+  if(e.key==="Enter" && answered && !$("nextBtn").classList.contains("hidden") && $("retryActions").classList.contains("hidden")){
     renderQuestion();
   }
   // 숫자키 1~5로 보기 선택
